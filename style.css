@@ -1,0 +1,84 @@
+/* 기본 배경 및 맵 설정 */
+body { 
+    margin: 0; 
+    background-color: #2c3e50; 
+    overflow: hidden; 
+    width: 100vw; 
+    height: 100vh;
+    /* 만약 배경 타일을 정하셨다면 여기에 추가하세요 */
+    /* background-image: url('your_tile.png'); 
+       background-repeat: repeat; 
+       background-size: 128px 128px; */
+}
+
+/* 캐릭터 본체 */
+#player {
+    width: 64px; height: 64px;
+    background-image: url('demon_front_2.png');
+    background-size: 256px 64px; background-repeat: no-repeat;
+    image-rendering: pixelated; position: absolute; z-index: 10;
+}
+
+/* 애니메이션 모음 */
+.walking { animation: walk-cycle 0.6s steps(4) infinite; }
+@keyframes walk-cycle { from { background-position: 0px 0px; } to { background-position: -256px 0px; } }
+
+.enemy { 
+    width: 64px; height: 64px; 
+    background-size: 256px 64px; background-repeat: no-repeat; 
+    image-rendering: pixelated; position: absolute; z-index: 5; 
+    animation: monster-walk 0.6s steps(4) infinite; 
+}
+@keyframes monster-walk { from { background-position: 0px 0px; } to { background-position: -256px 0px; } }
+
+/* HP바 시스템 */
+.hp-bar-bg { position: absolute; width: 50px; height: 6px; background: rgba(0,0,0,0.5); top: -10px; left: 7px; }
+.hp-bar-fill { width: 100%; height: 100%; background: #ff4757; transition: width 0.1s; }
+
+/* 스킬 및 VFX */
+.whip-vfx { width: 192px; height: 192px; position: absolute; background-size: 960px 192px; image-rendering: pixelated; pointer-events: none; z-index: 15; left: -64px; top: -64px; }
+.whip-animation { animation: play-whip 0.25s steps(5) forwards; }
+@keyframes play-whip { from { background-position: 0px 0px; } to { background-position: -960px 0px; } }
+
+.scythe-swing { width: 64px; height: 64px; position: absolute; background-size: 256px 64px; image-rendering: pixelated; pointer-events: none; z-index: 12; animation: scythe-swing-anim 0.2s steps(4) forwards; }
+@keyframes scythe-swing-anim { from { background-position: 0px 0px; } to { background-position: -256px 0px; } }
+
+.scythe-effect-vfx { 
+    width: 512px; height: 512px; position: absolute; 
+    background-image: url('scythe_effect.png'); 
+    background-size: 2048px 512px; image-rendering: pixelated; 
+    pointer-events: none; z-index: 13; 
+    margin-left: -224px; margin-top: -224px; 
+    animation: effect-anim 0.5s steps(4) forwards; 
+}
+@keyframes effect-anim { from { background-position: 0px 0px; } to { background-position: -2048px 0px; } }
+
+/* 방향별 스타일 (이미지 경로 주의) */
+.whip-vfx-front { background-image: url('demon_whisp_front.png'); }
+.whip-vfx-back { background-image: url('demon_whisp_back.png'); }
+.whip-vfx-left { background-image: url('demon_whisp_left_side.png'); }
+.whip-vfx-right { background-image: url('demon_whisp_right_side.png'); }
+
+.scythe-front { background-image: url('scythe_weapon_front.png'); left: -8px; top: 12px; }
+.scythe-back { background-image: url('scythe_weapon_back.png'); left: 8px; top: -12px; }
+.scythe-left { background-image: url('scythe_weapon_left.png'); left: -20px; top: 4px; }
+.scythe-right { background-image: url('scythe_weapon_right.png'); left: 20px; top: 4px; }
+
+.effect-front { transform: rotate(0deg) translateY(120px); }
+.effect-back { transform: rotate(180deg) translateY(120px); }
+.effect-left { transform: rotate(90deg) translateX(0px) translateY(120px); }
+.effect-right { transform: rotate(-90deg) translateX(0px) translateY(120px); }
+
+/* 대시 VFX */
+.vfx { width: 64px; height: 64px; position: absolute; background-size: 256px 64px; image-rendering: pixelated; z-index: 20; }
+.vfx-start { background-image: url('demon_moving_start.png'); animation: play-vfx 0.4s steps(4) forwards; }
+.vfx-end { background-image: url('demon_moving_end.png'); animation: play-vfx 0.4s steps(4) forwards; }
+@keyframes play-vfx { from { background-position: 0px 0px; } to { background-position: -256px 0px; } }
+
+/* 기타 유틸리티 */
+.hidden { visibility: hidden; }
+.vignette {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.8) 150%);
+    pointer-events: none; z-index: 100;
+}
