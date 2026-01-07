@@ -31,6 +31,12 @@ export default class MainScene extends Phaser.Scene{
         this.load.spritesheet('whisp', 'assets/NewWhisp.png', {frameWidth: 16, frameHeight: 16});
         this.load.spritesheet('scythe_effect', 'assets/scythe_effect2.png', {frameWidth: 64, frameHeight: 64});
         this.load.spritesheet('mouse', 'assets/MousePointer.png', {frameWidth: 32, frameHeight: 32});
+        //[브금]
+        this.load.audio('bgm', 'assets/sounds/firstBGM.mp3');
+        //[효과음]
+        this.load.audio('slash', 'assets/sounds/slashkut.wav');
+        this.load.audio('moving', 'assets/sounds/swooshMoving.wav');
+        this.load.audio('whip', 'assets/sounds/whipCrack.wav');
     }
 
     // preload가 끝나면 딱 한 번 실행됩니다. 화면에 물체를 배치하고 설정을 잡습니다.
@@ -105,6 +111,9 @@ export default class MainScene extends Phaser.Scene{
             frameRate:8,
             repeat: -1
         })
+        //배경음악은 게임 시작하자마자 재생해야하니깐 create에 
+        this.sound.play('bgm',{loop: true, volume: 0.5});//loop:true는 무한 반복
+
 
         //마우스 왼쪽,오른쪽 클릭시 브라우저가 메뉴가 뜨는 걸 방지
         this.input.mouse.disableContextMenu();
@@ -146,6 +155,9 @@ export default class MainScene extends Phaser.Scene{
     useSkill1(angle){
         if(this.isDashing || this.isAttacking || this.coolTime1)
             return ;
+        //효과음
+        this.sound.play('whip', {volume: 0.8 , late: 1.5});
+
         this.coolTime1 = true;//쿨타임 걸기
         this.time.delayedCall(500, () => {
             this.coolTime1 = false; // 쿨타임 해제 1초 뒤에 다시 사용 가능
@@ -204,6 +216,7 @@ export default class MainScene extends Phaser.Scene{
     useSkill2(angle){
         if(this.isDashing || this.isAttacking || this.coolTime2)
             return ;
+        this.sound.play('slash', {volume: 0.8 , late: 1.5});
         this.coolTime2 = true;
         this.time.delayedCall(500, () => {
             this.coolTime2 = false; // 1초 뒤에 다시 사용 가능
@@ -303,6 +316,10 @@ export default class MainScene extends Phaser.Scene{
 
         //스페이스바 눌렸을 때
         if(Phaser.Input.Keyboard.JustDown(this.spaceBar) && direction.length() > 0 ){//스페이스바 눌렀고, 현재 움직이고 있을때만
+            this.sound.play('moving', { 
+                volume: 0.6, 
+                rate: 1.5   // 1.0이 기본속도, 1.5는 1.5배속입니다. (더 높을수록 빨라짐)
+            });
             direction.normalize(); // 대각선 거리 보정
             this.isDashing = true; // 대시 시작! (중복 실행 방지)
 

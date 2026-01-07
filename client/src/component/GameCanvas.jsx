@@ -2,7 +2,10 @@
 //React의 생명주기와 Phaser의 실행 시점을 연결해주는 아주 중요한 브릿지 역할
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
-import MainScene from '../game/MainScene'; 
+import PreloadScene from '../scenes/PreloadScene';
+import SelectScene from '../scenes/selectScene';
+import MainScene from '../scenes/MainScene'; 
+
 //useRef - React에서 특정 HTML요소(DOM)를 직접 손으로 가리키는 집게
 //실제 DOM의 주소를 useRef로 만든 변수에 넘기면서 React가 관리하는 가상 DOM에서 제외한다
 //그래서 useRef로 지정한 곳은 React의 간섭 없이 직접 수정/관리할 수 있다
@@ -41,7 +44,7 @@ export default function GameCanvas() {
             // render: 그래픽 처리 방식 설정입니다.
             render: {
                 pixelArt: true,  // 도트(Pixel) 그래픽이 흐릿하지 않고 선명하게 보이도록 설정합니다.
-                antialias: true // 부드럽게 깎는 기능을 꺼서 도트의 각진 느낌을 살립니다.
+                antialias: false // 부드럽게 깎는 기능을 꺼서 도트의 각진 느낌을 살립니다.
             },
             scale: {
                 // RESIZE: 브라우저 크기가 바뀔 때마다 게임 화면 크기도 실시간으로 맞춤
@@ -60,8 +63,8 @@ export default function GameCanvas() {
                     gravity: { y: 0 } // 위에서 아래로 떨어지는 중력을 0으로 설정합니다 (탑다운 뷰).
                 }
             },
-            // scene: 사용할 게임 장면(Scene)들의 리스트입니다. 우리가 만든 MainScene을 등록합니다.
-            scene: [MainScene]
+            // scene: 사용할 게임 장면(Scene)들의 리스트입니다. 우리가 만든 mainScene을 등록합니다.
+            scene: [SelectScene, MainScene]
         };
 
         // 설정값(config)을 바탕으로 실제 Phaser 게임 객체를 생성하여 gameRef에 보관합니다.
@@ -83,7 +86,13 @@ export default function GameCanvas() {
     return (
         <div 
             ref={containerRef} 
-            style={{ width: '100%', height: '100%' }}
+            style={{width: '100vw',   // 화면 너비 꽉 채우기
+            height: '100vh',  // 화면 높이 꽉 채우기
+            overflow: 'hidden',
+            margin: 0,
+            padding: 0,
+            display: 'block'  // 빈 공간 제거 }}
+            }}
         />
     );
 }
