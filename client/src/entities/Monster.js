@@ -3,12 +3,30 @@ import Actor from './Actor';
 
 export default class Monster extends Actor {
     constructor(scene, x, y) {
-        super(scene, x, y, 'alien', 50); // alien 이미지를 쓴다면 'alien'으로 변경
+        super(scene, x, y, 'alien', 15); // alien 이미지를 쓴다면 'alien'으로 변경
         this.setScale(2);
+        //MainScene에서 this.physics.add.collider(this.monsters, this.monsters);을 통해 
+        //몹끼리 겹치지 않게했지만 몸체가 기본 박스형태라서 겹칠 때도 있다 이를 방지하기 위해
+        
+        // 1. 몸체를 네모에서 '동그라미'로 변경
+        //    setCircle(반지름, offsetX, offsetY)
+        //    16px 스프라이트 기준 반지름 6 정도면 적당합니다.
+        this.body.setCircle(6, 2, 2); 
+
+        // 2. 서로 부딪혔을 때 살짝 튕겨나가게 설정 (0 ~ 1 사이 값)
+        //    1에 가까울수록 탱탱볼처럼 튕깁니다. 0.5 정도 줍니다.
+        this.setBounce(0.5);
+
+        // 3. 서로 비집고 들어갈 때 미끄러지도록 마찰력 줄이기 (선택)
+        this.setDrag(100); // 밀려난 뒤에 금방 멈추도록 저항 설정
+
+        this.isRespawning = false;
     }
 
     // [핵심 기능] 플레이어를 추적하는 함수
     trace(player) {
+
+        this.play('alien', true);
         // 1. 바라보는 방향(Flip) 결정
         if (player.x < this.x) {
             this.setFlipX(true);  // 왼쪽 봄
@@ -27,12 +45,8 @@ export default class Monster extends Actor {
         } else {
             // 거리가 멀면 쫓아감 (속도 50)
             // moveToObject(이동할놈, 목표물, 속도)
-            this.scene.physics.moveToObject(this, player, 50);
+            this.scene.physics.moveToObject(this, player, 30);
         }
     }
     
-    // 데미지 입는 함수는 기존 유지
-    takeDamage(damage) {
-        // ... (기존 코드) ...
-    }
 }

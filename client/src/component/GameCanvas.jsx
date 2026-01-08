@@ -59,7 +59,7 @@ export default function GameCanvas() {
             physics: {
                 default: 'arcade', // 가볍고 빠른 'Arcade' 물리 엔진을 사용합니다.
                 arcade: {
-                    debug: false,    // true로 바꾸면 충돌 박스(분홍색 선)가 눈에 보입니다. 개발 시 유용합니다.
+                    debug: true,    // true로 바꾸면 충돌 박스(분홍색 선)가 눈에 보입니다. 개발 시 유용합니다.
                     gravity: { y: 0 } // 위에서 아래로 떨어지는 중력을 0으로 설정합니다 (탑다운 뷰).
                 }
             },

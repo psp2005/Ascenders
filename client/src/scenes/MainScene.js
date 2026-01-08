@@ -1,7 +1,23 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player';
 import Monster from '../entities/Monster';
-
+/*
+<주요 내장 속성>
+Phaser.Scene에 있는 것들
+this.add - 게임 오브젝트(이미지,텍스트) 공장
+this.load - 파일 로딩 담당자
+this.physics - 물리 엔진 담당자
+this.input - 키보드/마우스 입력관리자
+this.cameras - 카메라 관리자
+this.anims - 애니메이션 관리자(전역)
+this.time - 타이머 및 시간 관리자
+this.sound - 오디오 관리자
+<사용자 정의 속성 - 우리가 만든 것>
+this.player - 플레이어 객체
+this.monsters - 몬스터 그룹
+this.profjectiles - 투사체 그룹
+this.customCursor - 커서 이미지
+*/
 export default class MainScene extends Phaser.Scene{
     constructor(){
         super('MainScene');
@@ -10,7 +26,7 @@ export default class MainScene extends Phaser.Scene{
         //받아온 job이 있으면 그걸 쓰고, 없으면 기본값 'demon'을 사용
         this.selectedJob = data.job || 'demon';
     }
-    preload(){
+    preload(){//이미지, 소리 파일...등을 메모리에 로드
         const job = this.selectedJob;
          // =========================================================
         // [1. 로딩 바 만들기] (아직 리소스 로딩 전이므로 코드로 그립니다)
@@ -73,7 +89,7 @@ export default class MainScene extends Phaser.Scene{
         this.load.spritesheet('alien', 'assets/alien.png',{frameWidth: 16, frameHeight: 16});
     }
     
-    create(){
+    create(){//로드된 재료로 화면에 배치하고 로직을 연결(딱 한 번 실행)
         //1.물리 세계 설정(화면 크기 대응)
         this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
         this.scale.on('resize', (gameSize) => {
@@ -109,33 +125,10 @@ export default class MainScene extends Phaser.Scene{
                 body.gameObject.destroy();
             }
         });
-        ////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         //  투사체 그룹 생성 (Player가 스킬을 쓸 때 여기에 넣어야 함)
-        // Player.js에서 this.scene.projectiles.add(skillEffect)를 해줘야 합니다.
-        this.projectiles = this.physics.add.group();
-
-
-
+        this.singleProjectiles = this.physics.add.group();
+        this.multiProjectiles = this.physics.add.group();
         //  몬스터 그룹 생성 및 초기화
         this.monsters = this.physics.add.group();
 
@@ -143,50 +136,51 @@ export default class MainScene extends Phaser.Scene{
         for (let i = 0; i < 8; i++) {
             this.spawnMonster();
         }
-        //  [핵심] 충돌 로직 (투사체 vs 몬스터)
-        this.physics.add.overlap(this.projectiles, this.monsters, (projectile, monster) => {
-            // 투사체는 닿자마자 사라짐
+        // 충돌 로직 (단일기 투사체 vs 몬스터)
+        this.physics.add.overlap(this.singleProjectiles, this.monsters, (projectile, monster) => {
             projectile.destroy();
-
-            // 몬스터 데미지 처리
             monster.takeDamage(10); 
-
-            // 몬스터 사망 체크
-            if (monster.hp <= 0) {
-                // 즉시 화면에서 제거
-                monster.destroy();
-                console.log("몬스터 사망! 10초 뒤 리스폰됩니다.");
-
+            if (monster.isDead == true) {
                 // [리스폰 로직] 10초(10000ms) 뒤에 spawnMonster 함수 실행
                 this.time.delayedCall(10000, () => {
                     this.spawnMonster();
                 });
             }
         });
-        
+        this.physics.add.overlap(this.multiProjectiles, this.monsters, (projectile,monster)=>{
+            //다수기는 벽이아닌 몬스터가 닿이면 없어지지 않아서 무한타격이 된다
+            //이를 방지하기위해 각 다수기별로 어떤 몬스터를 히트했는지 기억하는 장부를 만든다
+            if(!projectile.hitHistory){//장부 없으면 새로 만들기
+                projectile.hitHistory = new Map()
+            }
+            const now = this.time.now;
+            const lastHitTime = projectile.hitHistory.get(monster);
+            if(lastHitTime && now < lastHitTime + 500)//아직 0.5초 미경과면 타격x
+                    return;
+            //그렇지 않으면 그냥 타격하고 장부에 타격 시간 작성
+            monster.takeDamage(5); 
+            projectile.hitHistory.set(monster,now);
 
+         
+          
+            if(!monster.isRespawning){
+                //isRespawning은 다수기가 몹을 hp = 0으로 만들어서 spawnMonster()를 호출했지만
+                //여전히 다수기랑 몹이 overlap인 짧은 순간(1초에 60번)에 spawnMonster()또 호출할 수 있다.
+                //그걸 방지하기위한 변수 
+                monster.isRespawning = true;
+                this.time.delayedCall(10000, () => {
+                    this.spawnMonster();
+                }); 
+            }
+            
+        })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        this.physics.add.collider(this.monsters, this.monsters);
+        console.log("@@@@@@@@@@@@@@this 속 내용물 : ", this);
     }
-    update(){
+
+
+    update(){//무한루프, 1초에 60번씩 움직임을 처리
         if (this.customCursor) {
             // worldX, worldY를 써야 카메라가 움직여도 정확한 위치에 따라옵니다.
             this.customCursor.x = this.input.activePointer.worldX;
@@ -205,10 +199,11 @@ export default class MainScene extends Phaser.Scene{
 
         //몬스터가 플레이어 쳐다보고 따라가도록
         this.monsters.getChildren().forEach(monster => {
+            //getChildren은 그룹(monsters)이 가진 모든 구성원(배열)을 내놓으라는 Phaser명령어
             if (monster.trace) {
-                monster.trace(this.player);
+                monster.trace(this.player);//trace는 alien 속 메서드
             } else if (monster.lookAt) {
-                monster.lookAt(this.player.x);
+                monster.lookAt(this.player.x);//lookAt는 alien 속 메서드
             }
         });
     }
@@ -225,6 +220,19 @@ export default class MainScene extends Phaser.Scene{
         // 그룹에 추가 (충돌 검사를 위해 필수)
         this.monsters.add(monster);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
     // 코드가 너무 길어지니 애니메이션 생성 부분은 함수로 뺐습니다.
     createAnimations() {
         this.anims.create({
@@ -276,6 +284,11 @@ export default class MainScene extends Phaser.Scene{
             key: 'skill2',
             frames: this.anims.generateFrameNumbers('skill2', {start: 0, end: 3}),
             frameRate: 16, repeat: -1
+        });
+        this.anims.create({
+            key: 'alien',
+            frames: this.anims.generateFrameNumbers('alien', {start: 0, end: 3}),
+            frameRate: 4, repeat: -1
         });
     }
 }

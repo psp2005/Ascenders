@@ -121,7 +121,7 @@ export default class Player extends Actor {
     useSkill1(angle) {
          if(this.isDashing || this.isAttacking || this.coolTime1)
             return ;
-        this.scene.sound.play('skill1_sound', {volume: 0.8 , late: 1.5});
+        this.scene.sound.play('skill1_sound', {volume: 0.8 , late: 0});
 
         this.coolTime1 = true;//쿨타임 걸기
         this.scene.time.delayedCall(500, () => {
@@ -161,7 +161,8 @@ export default class Player extends Actor {
         //스킬 이펙트용 스프라이트를 만든다 아니면 캐릭터가 이펙트로 바뀐다
         // physics.add.sprite를 써야 나중에 몬스터와 충돌 검사가 가능합니다.
         const skillEffect = this.scene.physics.add.sprite(effectX, effectY, 'skill1');
-        
+        // 단일기 이펙트 그룹에 넣기 - 이 그룹에 넣어야 MainScene속 this.physics.add.overlap이 인식하여 몬스터 타격가능
+        this.scene.singleProjectiles.add(skillEffect);
         // 2. 이펙트 크기 조절 (필요하다면)
         skillEffect.setScale(4);
         // 3. 이펙트가 마우스 방향을 보게 회전
@@ -175,14 +176,18 @@ export default class Player extends Actor {
         // 5. 애니메이션이 끝나면 이펙트 삭제 (메모리 정리)
         skillEffect.once('animationcomplete-skill1', () => {
             skillEffect.destroy(); // 화면에서 완전히 제거
-            this.isAttacking = false;
+            
         });
+        //6. 스킬이 벽이나 몬스터에 부딪혀서 사라지면 isAttacking 원복
+        skillEffect.once('destroy',()=>{
+            this.isAttacking = false;
+        })
     }
 
     useSkill2(angle) {
         if(this.isDashing || this.isAttacking || this.coolTime2)
             return ;
-        this.scene.sound.play('skill2_sound', {volume: 0.8 , late: 1.5});
+        this.scene.sound.play('skill2_sound', {volume: 0.8 , late: 0});
         this.coolTime2 = true;
         this.scene.time.delayedCall(500, () => {
             this.coolTime2 = false; // 1초 뒤에 다시 사용 가능
@@ -210,6 +215,8 @@ export default class Player extends Actor {
         const effectX = this.x + Math.cos(angle) * offset;
         const effectY = this.y + Math.sin(angle) * offset;
         const skillEffect = this.scene.physics.add.sprite(effectX, effectY, 'skill2');
+        //다수기 이펙트 그룹에 넣기
+        this.scene.multiProjectiles.add(skillEffect);
         skillEffect.setScale(4);
         skillEffect.setRotation(angle);
         skillEffect.play('skill2');

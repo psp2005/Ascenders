@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 
 export default class Actor extends Phaser.Physics.Arcade.Sprite{
     constructor(scene,x,y,texture, hp = 100){
-        super(scene, x, y, texture);
+        super(scene, x, y, texture);//super는 부모 생성자를 먼저 실행하라는 뜻
 
         scene.add.existing(this);
         scene.physics.add.existing(this);
