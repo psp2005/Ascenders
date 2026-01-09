@@ -215,6 +215,9 @@ export default class Player extends Actor {
         const effectX = this.x + Math.cos(angle) * offset;
         const effectY = this.y + Math.sin(angle) * offset;
         const skillEffect = this.scene.physics.add.sprite(effectX, effectY, 'skill2');
+        //skill2의 도화지는 64*64이지만 실제 그림은 작기때문에 충돌박스를 작게 조절해야함
+        skillEffect.body.setSize(40,40)//너비,높이
+
         //다수기 이펙트 그룹에 넣기
         this.scene.multiProjectiles.add(skillEffect);
         skillEffect.setScale(4);

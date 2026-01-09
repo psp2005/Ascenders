@@ -11,6 +11,8 @@ export default class Actor extends Phaser.Physics.Arcade.Sprite{
         this.maxHp = hp;
         this.isDead = false;
 
+        //몬스터가 피격당하면 잠시 멈추게하기 위한 플래그
+        this.isHitted = false;
         this.setCollideWorldBounds(true);
     }
 
@@ -19,15 +21,23 @@ export default class Actor extends Phaser.Physics.Arcade.Sprite{
             return ;
 
         this.hp -= amount;
+        this.setTintFill(0xffffff);
+        this.isHitted = true;
+        this.setVelocity(0,0);
+        if (this.anims)
+            this.anims.pause();
 
-        //Juice : 피격시 빨갛게 깜빡임 (Tween 사용)
-        this.scene.tweens.add({
-            targets: this,//애니메이션 적용할 대상
-            alpha: 0.5,//투명도
-            duration: 100,
-            yoyo: true,//투명해졌다가 다시 원래대로
-            repeat: 1
+        this.scene.time.delayedCall(200, () => {
+            if (this.active && !this.isDead) {
+                this.clearTint();      // 색 복구
+                this.isStunned = false; // 스턴 해제
+                if (this.anims) this.anims.resume(); // 애니메이션 다시 재생
+            }
         });
+
+        
+
+        
 
         if (this.hp <= 0)
             this.die();
