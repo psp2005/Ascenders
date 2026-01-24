@@ -5,7 +5,7 @@ export default class Player extends Actor {
     constructor(scene, x, y){
         super(scene, x, y, 'player_front', 100);
 
-        this.setScale(2);
+        // this.setScale(2);
 
         this.isDashing = false;
         this.isAttacking = false;
@@ -20,6 +20,8 @@ export default class Player extends Actor {
     
     update(angle){
         if(this.isDead)//Player가 상속받은 Actor에 있는 변수
+            return ;
+        if(this.isHitted)//피격시 잠깐 멈추도록
             return ;
         if(this.isDashing)
             return;
@@ -64,7 +66,7 @@ export default class Player extends Actor {
         }
 
         // 이동 실행
-        const speed = 100;
+        const speed = 70;
         if (direction.length() > 0) {
             direction.normalize().scale(speed);
             this.setVelocity(direction.x, direction.y);
@@ -152,7 +154,7 @@ export default class Player extends Actor {
         }
         // ----------------------------------------------------
         //  스킬 이펙트 생성 (핵심!)
-        const offset = 40; // 캐릭터 몸에서 얼마나 떨어질지 (픽셀 단위)
+        const offset = 4; // 캐릭터 몸에서 얼마나 떨어질지 (픽셀 단위)
         // 캐릭터 위치에서 각도(angle) 방향으로 offset만큼 떨어진 좌표 계산
         // Math.cos는 X축, Math.sin은 Y축 거리를 구해줍니다.
         const effectX = this.x + Math.cos(angle) * offset;
@@ -164,7 +166,7 @@ export default class Player extends Actor {
         // 단일기 이펙트 그룹에 넣기 - 이 그룹에 넣어야 MainScene속 this.physics.add.overlap이 인식하여 몬스터 타격가능
         this.scene.singleProjectiles.add(skillEffect);
         // 2. 이펙트 크기 조절 (필요하다면)
-        skillEffect.setScale(4);
+        // skillEffect.setScale(4);
         // 3. 이펙트가 마우스 방향을 보게 회전
         // Phaser의 rotation은 라디안 값을 사용
         // 만약 그림이 위쪽을 보고 그려졌다면 + 90도(Math.PI/2) 보정이 필요할 수 있습니다.
@@ -220,7 +222,7 @@ export default class Player extends Actor {
 
         //다수기 이펙트 그룹에 넣기
         this.scene.multiProjectiles.add(skillEffect);
-        skillEffect.setScale(4);
+        // skillEffect.setScale(4);
         skillEffect.setRotation(angle);
         skillEffect.play('skill2');
         ////////////////////////이 밑으로는 skill1과 다른 점//////////////////////////////////

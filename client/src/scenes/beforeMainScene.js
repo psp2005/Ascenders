@@ -1,4 +1,4 @@
-//실제 게임 로직(캐릭터 이동, 물리 엔진, 공격)짜는 곳
+// 맨 처음 개발시작한 파일, 모든 로직이 한 곳에 섞인 곳이다.
 import Phaser from 'phaser';
 // Phaser.Scene이라는 기본 도안을 복사해서(extends) 나만의 'MainScene'을 설계합니다(class).
 // export default는 이 파일을 다른 곳에서 불러다 쓸 수 있게 허용한다는 뜻입니다.

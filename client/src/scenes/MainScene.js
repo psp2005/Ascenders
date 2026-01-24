@@ -1,3 +1,5 @@
+//플레이어(캐릭터), 몬스터 클래스를 import하고 각 객체를 생성
+//맵의 물리 법칙, 몬스터 스폰, 투사체와 몬스터 사이 충돌 판정...등 월드 관리를 하는 파일
 import Phaser from 'phaser';
 import Player from '../entities/Player';
 import Monster from '../entities/Monster';
@@ -67,6 +69,9 @@ export default class MainScene extends Phaser.Scene{
         });
 
         ///////////////////////////////////////////////////////////////////
+        //[타일맵]
+        this.load.tilemapTiledJSON('map', 'assets/tile/myFirstMap.json');
+        this.load.image('tiles', 'assets/tile/tilemap.png')
         //[마우스 포인터]
         this.load.spritesheet('mouse', 'assets/MousePointer.png', {frameWidth: 32, frameHeight: 32});
         //[브금]
@@ -85,13 +90,36 @@ export default class MainScene extends Phaser.Scene{
         this.load.audio('moving', `assets/sounds/${job}_moving_sound.wav`);
         this.load.audio('skill1_sound', `assets/sounds/${job}_skill1_sound.wav`);
         this.load.audio('skill2_sound', `assets/sounds/${job}_skill2_sound.wav`);
-        //몹
+        //[몹]
         this.load.spritesheet('alien', 'assets/alien.png',{frameWidth: 16, frameHeight: 16});
     }
     
-    create(){//로드된 재료로 화면에 배치하고 로직을 연결(딱 한 번 실행)
-        //1.물리 세계 설정(화면 크기 대응)
-        this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
+    create(){//로드된 재료로 화면에 배치하고 로직을 연결(딱 한 번 실행) 아래 순서 중요
+        
+        // 1. 애니메이션 생성 (플레이어, 이펙트 등 모든 애니메이션)
+        // MainScene에서 한 번만 만들어두면, Player 클래스에서도 갖다 쓸 수 있습니다.
+        this.createAnimations();
+        
+        
+        //2-1.타일맵 적용
+        const map = this.make.tilemap({key:'map'});//맵 데이터 생성
+        const tileset = map.addTilesetImage('tileset', 'tiles');//타일셋 이미지 연결
+        const dungeonLayer = map.createLayer('Dungeon', tileset, 0, 0);//레이어 생성
+        const objectsLayer = map.createLayer('Objects', tileset, 0, 0);
+        
+        //1.물리 세계 설정(화면 크기 대응었는데 맵 크기 대응으로 수정)
+        this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+        
+        // 3. 캐릭터 
+        this.player = new Player(this, 400, 400);
+        
+        //2-2
+        dungeonLayer.setCollisionByProperty({ collides: true });//충돌 설정
+        objectsLayer.setCollisionByProperty({ collides: true });
+        
+        this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);//카메라 설정
+        this.cameras.main.startFollow(this.player);
+        
         this.scale.on('resize', (gameSize) => {
             const width = gameSize.width;
             const height = gameSize.height;
@@ -100,9 +128,7 @@ export default class MainScene extends Phaser.Scene{
             // 물리 세계 벽 위치 업데이트
             this.physics.world.setBounds(0, 0, width, height);
         });
-        // 2. 애니메이션 생성 (플레이어, 이펙트 등 모든 애니메이션)
-        // MainScene에서 한 번만 만들어두면, Player 클래스에서도 갖다 쓸 수 있습니다.
-        this.createAnimations();
+
         //3브금
         this.sound.play('bgm',{loop: true, volume: 0.5});//loop:true는 무한 반복
         //4마우스 커서
@@ -112,11 +138,10 @@ export default class MainScene extends Phaser.Scene{
         this.customCursor.setDepth(9999);
         this.customCursor.setScale(1);
         this.customCursor.play('mouse');
-        //5배경색
-        this.cameras.main.setBackgroundColor('#2c3e50');   
+        
 
-        // 6. 캐릭터 
-        this.player = new Player(this, 400, 400);
+        //6.배경색
+        // this.cameras.main.setBackgroundColor('#2c3e50');   
 
         // 7 모든 투사체(destroyOnWall이라는 꼬리표를 붙여준다)에 대하여 벽에 부딪히면 사라지도록 전역 이벤트를 등록
         this.physics.world.on('worldbounds', (body) => {
@@ -140,7 +165,8 @@ export default class MainScene extends Phaser.Scene{
         this.physics.add.overlap(this.singleProjectiles, this.monsters, (projectile, monster) => {
             projectile.destroy();
             monster.takeDamage(10); 
-            if (monster.isDead == true) {
+            if (monster.isDead == true && !monster.isRespawning) {
+                monster.isRespawning = true;
                 // [리스폰 로직] 10초(10000ms) 뒤에 spawnMonster 함수 실행
                 this.time.delayedCall(10000, () => {
                     this.spawnMonster();
@@ -161,12 +187,10 @@ export default class MainScene extends Phaser.Scene{
             monster.takeDamage(5); 
             projectile.hitHistory.set(monster,now);
 
-         
-          
-            if(!monster.isRespawning){
+            if(monster.isDead == true && !monster.isRespawning){
                 //isRespawning은 다수기가 몹을 hp = 0으로 만들어서 spawnMonster()를 호출했지만
                 //여전히 다수기랑 몹이 overlap인 짧은 순간(1초에 60번)에 spawnMonster()또 호출할 수 있다.
-                //그걸 방지하기위한 변수 
+                //그러면 우리가 8마리로 제한한 것보다 더 생성될 수 있다. 그걸 방지하기위한 변수 
                 monster.isRespawning = true;
                 this.time.delayedCall(10000, () => {
                     this.spawnMonster();
@@ -176,9 +200,27 @@ export default class MainScene extends Phaser.Scene{
         })
 
         this.physics.add.collider(this.monsters, this.monsters);
+        this.physics.add.collider(this.player, this.monsters);
+        this.physics.add.collider(this.player, dungeonLayer);//캐릭터와 충돌 레이어 연결 (이제 캐릭터가 장애물을 못 지나감)
+        this.physics.add.collider(this.player, objectsLayer);
+        this.physics.add.collider(this.monsters, dungeonLayer);
+        this.physics.add.collider(this.monsters, objectsLayer);
+        this.physics.add.collider(this.singleProjectiles, dungeonLayer, this.handleProjectileWallCollision, null, this);
+        this.physics.add.collider(this.singleProjectiles, objectsLayer, this.handleProjectileWallCollision, null, this);
+        
+        this.physics.add.collider(this.multiProjectiles, dungeonLayer, this.handleProjectileWallCollision, null, this);
+        this.physics.add.collider(this.multiProjectiles, objectsLayer, this.handleProjectileWallCollision, null, this);
+      
+
+
         console.log("@@@@@@@@@@@@@@this 속 내용물 : ", this);
     }
 
+    // [추가됨] 투사체가 벽에 부딪혔을 때 실행되는 함수
+    handleProjectileWallCollision(projectile, tile) {
+        // 투사체 제거
+        projectile.destroy();
+    }
 
     update(){//무한루프, 1초에 60번씩 움직임을 처리
         if (this.customCursor) {
@@ -210,14 +252,17 @@ export default class MainScene extends Phaser.Scene{
 
     // [추가] 몬스터 스폰 함수
     spawnMonster() {
-        // 화면 가장자리를 제외한 랜덤 위치 계산
-        const x = Phaser.Math.Between(50, this.scale.width - 50);
-        const y = Phaser.Math.Between(50, this.scale.height - 50);
-
-        // 몬스터 생성
-        const monster = new Monster(this, x, y);
+        // [수정 추천] 스폰 위치도 맵 전체 크기 내에서 랜덤으로 잡아야 합니다.
+        // 기존: const x = Phaser.Math.Between(50, this.scale.width - 50);
+        // 수정: this.physics.world.bounds.width 사용
         
-        // 그룹에 추가 (충돌 검사를 위해 필수)
+        const worldWidth = this.physics.world.bounds.width;
+        const worldHeight = this.physics.world.bounds.height;
+
+        const x = Phaser.Math.Between(50, worldWidth - 50);
+        const y = Phaser.Math.Between(50, worldHeight - 50);
+
+        const monster = new Monster(this, x, y);
         this.monsters.add(monster);
     }
 

@@ -43,7 +43,7 @@ export default function GameCanvas() {
             parent: containerRef.current,//
             // render: 그래픽 처리 방식 설정입니다.
             render: {
-                pixelArt: true,  // 도트(Pixel) 그래픽이 흐릿하지 않고 선명하게 보이도록 설정합니다.
+                pixelArt: false,  // 도트(Pixel) 그래픽이 흐릿하지 않고 선명하게 보이도록 설정합니다.
                 antialias: false // 부드럽게 깎는 기능을 꺼서 도트의 각진 느낌을 살립니다.
             },
             scale: {
@@ -59,12 +59,12 @@ export default function GameCanvas() {
             physics: {
                 default: 'arcade', // 가볍고 빠른 'Arcade' 물리 엔진을 사용합니다.
                 arcade: {
-                    debug: true,    // true로 바꾸면 충돌 박스(분홍색 선)가 눈에 보입니다. 개발 시 유용합니다.
+                    debug: false,    // true로 바꾸면 충돌 박스(분홍색 선)가 눈에 보입니다. 개발 시 유용합니다.
                     gravity: { y: 0 } // 위에서 아래로 떨어지는 중력을 0으로 설정합니다 (탑다운 뷰).
                 }
             },
             // scene: 사용할 게임 장면(Scene)들의 리스트입니다. 우리가 만든 mainScene을 등록합니다.
-            scene: [SelectScene, MainScene]
+            scene: [ SelectScene, MainScene]
         };
 
         // 설정값(config)을 바탕으로 실제 Phaser 게임 객체를 생성하여 gameRef에 보관합니다.

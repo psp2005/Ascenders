@@ -4,7 +4,7 @@ import Actor from './Actor';
 export default class Monster extends Actor {
     constructor(scene, x, y) {
         super(scene, x, y, 'alien', 15); // alien 이미지를 쓴다면 'alien'으로 변경
-        this.setScale(2);
+        // this.setScale(2);
         //MainScene에서 this.physics.add.collider(this.monsters, this.monsters);을 통해 
         //몹끼리 겹치지 않게했지만 몸체가 기본 박스형태라서 겹칠 때도 있다 이를 방지하기 위해
         
@@ -25,7 +25,10 @@ export default class Monster extends Actor {
 
     // [핵심 기능] 플레이어를 추적하는 함수
     trace(player) {
-
+        if(this.isHitted || this.isDead){//피격 당하거나 죽으면 움직이지 않음
+            this.setVelocity(0,0);
+            return ;
+        }
         this.play('alien', true);
         // 1. 바라보는 방향(Flip) 결정
         if (player.x < this.x) {

@@ -1,3 +1,4 @@
+//캐릭터 선택화면, 선택한 캐릭터의 직업 데이터를 가지고 MainScene으로 넘어간다.
 import Phaser from 'phaser';
 
 export default class SelectScene extends Phaser.Scene {

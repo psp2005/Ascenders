@@ -1,3 +1,5 @@
+//게임에 필요한 이미지, 사운드 등 무거운 자원을 미리 로딩하고 로딩 바를 보여준다. 
+//로딩이 끝나면 SelectScene을 시작한다
 import Phaser from 'phaser';
 
 export default class PreloadScene extends Phaser.Scene {
@@ -37,13 +39,27 @@ export default class PreloadScene extends Phaser.Scene {
 
         // 4. 모든 무거운 리소스를 여기서 미리 다 로드해버립니다!
         // SelectScene과 MainScene에서 쓸 것들을 한꺼번에 로딩하세요.
-        this.load.spritesheet('demon_icon', 'assets/demon_front_2.png', { frameWidth: 16, frameHeight: 16 });
-        this.load.spritesheet('mouse', 'assets/MousePointer.png', { frameWidth: 32, frameHeight: 32 });
+        
+        //[마우스 포인터]
+        this.load.spritesheet('mouse', 'assets/MousePointer.png', {frameWidth: 32, frameHeight: 32});
+        //[브금]
         this.load.audio('bgm', 'assets/sounds/firstBGM.mp3');
-        this.load.audio('moving', 'assets/sounds/swooshMoving.wav');
-        this.load.audio('skill1_sound', 'assets/sounds/whipCrack.wav');
-        this.load.audio('skill2_sound', 'assets/sounds/slashkut.wav');
-        // ... (나머지 공통 파일들도 다 여기 넣으세요)
+
+        //이펙트
+        this.load.spritesheet('player_front', `assets/demon_front.png`,{frameWidth: 16, frameHeight: 16});
+        this.load.spritesheet('player_back', `assets/demon_back.png`, {frameWidth: 16, frameHeight: 16});
+        this.load.spritesheet('player_left', `assets/demon_left.png`,{frameWidth: 16, frameHeight: 16});
+        this.load.spritesheet('player_right', `assets/demon_right.png`, {frameWidth: 16, frameHeight: 16});
+        this.load.spritesheet('player_move_start', `assets/demon_moving_start.png`, {frameWidth: 16, frameHeight: 16});
+        this.load.spritesheet('player_move_end', `assets/demon_moving_end.png`, {frameWidth: 16, frameHeight: 16});
+        this.load.spritesheet('skill1', `assets/demon_skill1.png`, {frameWidth: 16, frameHeight: 16});
+        this.load.spritesheet('skill2', `assets/demon_skill2.png`, {frameWidth: 64, frameHeight: 64});
+        //[효과음]
+        this.load.audio('moving', `assets/sounds/demon_moving_sound.wav`);
+        this.load.audio('skill1_sound', `assets/sounds/demon_skill1_sound.wav`);
+        this.load.audio('skill2_sound', `assets/sounds/demon_skill2_sound.wav`);
+        //몹
+        this.load.spritesheet('alien', 'assets/alien.png',{frameWidth: 16, frameHeight: 16});
     }
 
     create() {

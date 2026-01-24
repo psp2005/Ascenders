@@ -30,7 +30,7 @@ export default class Actor extends Phaser.Physics.Arcade.Sprite{
         this.scene.time.delayedCall(200, () => {
             if (this.active && !this.isDead) {
                 this.clearTint();      // 색 복구
-                this.isStunned = false; // 스턴 해제
+                this.isHitted = false; // 스턴 해제
                 if (this.anims) this.anims.resume(); // 애니메이션 다시 재생
             }
         });
