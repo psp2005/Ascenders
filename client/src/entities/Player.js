@@ -5,19 +5,39 @@ export default class Player extends Actor {
     constructor(scene, x, y){
         super(scene, x, y, 'player_front', 100);
 
-        // this.setScale(2);
+        this.setScale(2);
 
         this.isDashing = false;
         this.isAttacking = false;
         this.coolTime1 = false;
         this.coolTime2 = false;
+        //플레이어 전용 변수
+        this.level = 0;
+        this.exp = 0;
+        this.maxExp = 100 * (this.level + 1);
+        this.damageColor = '#ffff00';
+
 
         //키보드 입력 설정
         this.keys = scene.input.keyboard.addKeys('W,A,S,D');
         this.spaceBar = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        // [추가] R키 (자체 힐용)
+        this.keyR = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
     }
     //Player는 phaser의Scene이 아니고 Physics.Arcade.Sprite이라서 preload와 create를 하지 않는다
     
+
+    //Actor의 playHitEffect를 오버라이딩
+    playHitEffet(){
+        this.setAlpha(0.5);
+    }
+    //피격 후 복구할 때도 투명도를 원래대로 오버라이딩
+    recoverHitEffect(){
+        this.setAlpha(1);
+        this.clearTint();
+    }
+
     update(angle){
         if(this.isDead)//Player가 상속받은 Actor에 있는 변수
             return ;
@@ -25,6 +45,11 @@ export default class Player extends Actor {
             return ;
         if(this.isDashing)
             return;
+        // R키 누르면 자체 힐
+        if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
+            this.heal(20); // 체력 20 회복
+        }
+
         this.handleMovement();
 
         if(!this.isAttacking){
@@ -36,6 +61,72 @@ export default class Player extends Actor {
             }
         }
     }
+
+    heal(amount){
+        if(this.isDead)
+            return;
+        // 최대 체력을 넘지 않도록
+        this.hp = Math.min(this.hp + amount, this.maxHp);
+        
+        // 힐링 텍스트 (초록색)
+        this.showHealText(amount);
+    }
+
+    showHealText(amount) {
+        const text = this.scene.add.text(this.x, this.y - 40, `+${amount}`, {
+            fontSize: '18px', fill: '#00ff00', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+
+        this.scene.tweens.add({
+            targets: text, y: this.y - 80, alpha: 0, duration: 1000,
+            onComplete: () => text.destroy()
+        });
+    }
+    //경험치 획득
+    gainExp(amount) {
+        this.exp += amount;
+        if (this.exp >= this.maxExp) {
+            this.levelUp();
+        }
+    }
+    //레벨업
+    levelUp() {
+        this.level++;
+        this.exp -= this.maxExp;
+        this.maxExp = Math.floor(this.maxExp * 1.2); // 다음 레벨 필요 경험치 20% 증가
+        this.maxHp += 20; // 최대 체력 증가
+        this.hp = this.maxHp; // 체력 풀회복
+        
+        // 레벨업 이펙트 텍스트
+        const text = this.scene.add.text(this.x, this.y - 50, 'LEVEL UP!', {
+            fontSize: '24px', fill: '#ffff00', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5);
+        
+        this.scene.tweens.add({
+            targets: text, y: this.y - 100, alpha: 0, duration: 1500,
+            onComplete: () => text.destroy()
+        });
+    }
+
+    //오버라이딩으로 사망 함수
+    die(){
+        super.die();
+        //경험치 0으로
+        this.exp = 0;
+        // HudScene에 사망 사실을 알림 (부활 버튼 표시용)
+        const hud = this.scene.scene.get('HudScene');
+        if (hud) hud.showRespawnButton();
+    }
+
+    // 부활 함수
+    respawn() {//HudScene.js에서 호출할 거임
+        this.isDead = false;
+        this.hp = this.maxHp;
+        this.clearTint();
+        this.setAlpha(1);
+        this.play('player_front'); // 기본 자세
+    }
+
     handleMovement() {
         if (this.isAttacking || this.isDashing) {
             this.setVelocity(0);
@@ -154,7 +245,7 @@ export default class Player extends Actor {
         }
         // ----------------------------------------------------
         //  스킬 이펙트 생성 (핵심!)
-        const offset = 4; // 캐릭터 몸에서 얼마나 떨어질지 (픽셀 단위)
+        const offset = 20; // 캐릭터 몸에서 얼마나 떨어질지 (픽셀 단위)
         // 캐릭터 위치에서 각도(angle) 방향으로 offset만큼 떨어진 좌표 계산
         // Math.cos는 X축, Math.sin은 Y축 거리를 구해줍니다.
         const effectX = this.x + Math.cos(angle) * offset;
@@ -166,7 +257,7 @@ export default class Player extends Actor {
         // 단일기 이펙트 그룹에 넣기 - 이 그룹에 넣어야 MainScene속 this.physics.add.overlap이 인식하여 몬스터 타격가능
         this.scene.singleProjectiles.add(skillEffect);
         // 2. 이펙트 크기 조절 (필요하다면)
-        // skillEffect.setScale(4);
+        skillEffect.setScale(2);
         // 3. 이펙트가 마우스 방향을 보게 회전
         // Phaser의 rotation은 라디안 값을 사용
         // 만약 그림이 위쪽을 보고 그려졌다면 + 90도(Math.PI/2) 보정이 필요할 수 있습니다.
@@ -213,7 +304,7 @@ export default class Player extends Actor {
             this.setTexture('player_left');
             this.setFrame(0);
         }
-        const offset = 40;
+        const offset = 10;
         const effectX = this.x + Math.cos(angle) * offset;
         const effectY = this.y + Math.sin(angle) * offset;
         const skillEffect = this.scene.physics.add.sprite(effectX, effectY, 'skill2');
@@ -222,13 +313,13 @@ export default class Player extends Actor {
 
         //다수기 이펙트 그룹에 넣기
         this.scene.multiProjectiles.add(skillEffect);
-        // skillEffect.setScale(4);
+        skillEffect.setScale(2);
         skillEffect.setRotation(angle);
         skillEffect.play('skill2');
         ////////////////////////이 밑으로는 skill1과 다른 점//////////////////////////////////
         // 물리 엔진으로 속도 부여 (이 방향으로 날아가라!)
         // 400은 날아가는 속도입니다. 숫자가 클수록 빠릅니다.
-        this.scene.physics.velocityFromRotation(angle, 400, skillEffect.body.velocity);
+        this.scene.physics.velocityFromRotation(angle, 250, skillEffect.body.velocity);
 
         // 이펙트 벽 충돌 설정
         skillEffect.setCollideWorldBounds(true); // 벽에 부딪히게 설정

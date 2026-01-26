@@ -70,13 +70,14 @@ export default class MainScene extends Phaser.Scene{
 
         ///////////////////////////////////////////////////////////////////
         //[타일맵]
-        this.load.tilemapTiledJSON('map', 'assets/tile/myFirstMap.json');
+        this.load.tilemapTiledJSON('map', 'assets/tile/backgroundMap.json');
         this.load.image('tiles', 'assets/tile/tilemap.png')
         //[마우스 포인터]
         this.load.spritesheet('mouse', 'assets/MousePointer.png', {frameWidth: 32, frameHeight: 32});
         //[브금]
         this.load.audio('bgm', 'assets/sounds/firstBGM.mp3');
-
+        //프로필
+        this.load.spritesheet('profile', `assets/${job}Profile.png`,{frameWidth: 64, frameHeight: 64});
         //이펙트
         this.load.spritesheet('player_front', `assets/${job}_front.png`,{frameWidth: 16, frameHeight: 16});
         this.load.spritesheet('player_back', `assets/${job}_back.png`, {frameWidth: 16, frameHeight: 16});
@@ -100,6 +101,8 @@ export default class MainScene extends Phaser.Scene{
         // MainScene에서 한 번만 만들어두면, Player 클래스에서도 갖다 쓸 수 있습니다.
         this.createAnimations();
         
+        //HUD 생성
+        this.scene.launch('HudScene');
         
         //2-1.타일맵 적용
         const map = this.make.tilemap({key:'map'});//맵 데이터 생성
@@ -118,26 +121,38 @@ export default class MainScene extends Phaser.Scene{
         objectsLayer.setCollisionByProperty({ collides: true });
         
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);//카메라 설정
-        this.cameras.main.startFollow(this.player);
-        
+        this.cameras.main.startFollow(this.player, true);
+        this.cameras.main.setRoundPixels(true);//픽셀 깨짐 방지
+
         this.scale.on('resize', (gameSize) => {
-            const width = gameSize.width;
-            const height = gameSize.height;
+            // 창 크기가 홀수(예: 721px)면 중앙 계산 시 360.5px가 되어 선이 생깁니다.
+            // Math.ceil(... / 2) * 2 를 통해 무조건 짝수 크기로 맞춥니다.
+            const width = Math.ceil(gameSize.width / 2) * 2;
+            const height = Math.ceil(gameSize.height / 2) * 2;
             // 카메라 크기 업데이트
             this.cameras.main.setViewport(0, 0, width, height);
-            // 물리 세계 벽 위치 업데이트
-            this.physics.world.setBounds(0, 0, width, height);
+
         });
 
+        
         //3브금
+        // [소리 문제 해결] 브라우저 정책 때문에 클릭 시 오디오 컨텍스트를 재개합니다.
+        if (this.sound.locked) {
+            this.input.once('pointerdown', () => {
+                this.sound.context.resume();
+            });
+        }
         this.sound.play('bgm',{loop: true, volume: 0.5});//loop:true는 무한 반복
         //4마우스 커서
         this.input.mouse.disableContextMenu();
         this.input.setDefaultCursor('none');
-        this.customCursor = this.add.sprite(0, 0, 'mouse');
-        this.customCursor.setDepth(9999);
-        this.customCursor.setScale(1);
-        this.customCursor.play('mouse');
+
+        this.input.mouse.disableContextMenu();
+        this.input.setDefaultCursor('none');
+        // this.customCursor = this.add.sprite(0, 0, 'mouse');
+        // this.customCursor.setDepth(9999);
+        // this.customCursor.setScale(1);
+        // this.customCursor.play('mouse');
         
 
         //6.배경색
@@ -157,13 +172,27 @@ export default class MainScene extends Phaser.Scene{
         //  몬스터 그룹 생성 및 초기화
         this.monsters = this.physics.add.group();
 
-        // 처음에 8마리 생성
-        for (let i = 0; i < 8; i++) {
+
+        const mapArea = map.widthInPixels * map.heightInPixels;//맵 전체 면적
+        const monsterSize = 32 * 32;//몬스터 크기
+        const spawnCount = Math.floor((mapArea / monsterSize) / 100);// {(맵 크기/ 몬스터 크기)/30} 만큼 소환
+        for (let i = 0; i < spawnCount; i++) {
             this.spawnMonster();
         }
+
         // 충돌 로직 (단일기 투사체 vs 몬스터)
         this.physics.add.overlap(this.singleProjectiles, this.monsters, (projectile, monster) => {
-            projectile.destroy();
+            // 0.안전장치1: 투사체나 몬스터가 이미 죽었으면(active false),
+            // 이 코드가 없으면 "Cannot read properties of undefined" 에러가 뜨며 캐릭터가 멈출 수 있습니다.
+            if (!projectile.active || !monster.active) return;
+            
+            // 1.안전장치2: 이미 충돌 처리가 된 투사체라면 무시 (중복 데미지 방지)
+            // body.enable이 false라면 이미 어딘가에 부딪힌 상태입니다.
+            if (!projectile.body.enable) 
+                return;
+            // 2. 투사체의 물리 판정을 끈다
+            projectile.body.enable= false;
+
             monster.takeDamage(10); 
             if (monster.isDead == true && !monster.isRespawning) {
                 monster.isRespawning = true;
@@ -172,6 +201,13 @@ export default class MainScene extends Phaser.Scene{
                     this.spawnMonster();
                 });
             }
+            // 3. [핵심] 애니메이션이 재생 중이라면, 끝난 뒤에 삭제
+            if (projectile.anims & projectile.anims.isPlaying) {
+                // 'once'는 이벤트를 딱 한 번만 실행한다는 뜻입니다.
+                projectile.once('animationcomplete', () => {
+                    projectile.destroy();
+                });
+            } 
         });
         this.physics.add.overlap(this.multiProjectiles, this.monsters, (projectile,monster)=>{
             //다수기는 벽이아닌 몬스터가 닿이면 없어지지 않아서 무한타격이 된다
@@ -211,9 +247,6 @@ export default class MainScene extends Phaser.Scene{
         this.physics.add.collider(this.multiProjectiles, dungeonLayer, this.handleProjectileWallCollision, null, this);
         this.physics.add.collider(this.multiProjectiles, objectsLayer, this.handleProjectileWallCollision, null, this);
       
-
-
-        console.log("@@@@@@@@@@@@@@this 속 내용물 : ", this);
     }
 
     // [추가됨] 투사체가 벽에 부딪혔을 때 실행되는 함수
@@ -223,12 +256,6 @@ export default class MainScene extends Phaser.Scene{
     }
 
     update(){//무한루프, 1초에 60번씩 움직임을 처리
-        if (this.customCursor) {
-            // worldX, worldY를 써야 카메라가 움직여도 정확한 위치에 따라옵니다.
-            this.customCursor.x = this.input.activePointer.worldX;
-            this.customCursor.y = this.input.activePointer.worldY;
-        }
-
         // 각도 계산을 여기서 해서 넘겨주거나, Player 내부에서 계산하게 해도 됩니다.
         // 여기서는 넘겨주는 방식을 유지하겠습니다.
         const angle = Phaser.Math.Angle.Between(
@@ -248,6 +275,18 @@ export default class MainScene extends Phaser.Scene{
                 monster.lookAt(this.player.x);//lookAt는 alien 속 메서드
             }
         });
+
+        // HUD에 플레이어 정보 전달
+        const hud = this.scene.get('HudScene');
+        if (hud && this.player) {
+            hud.updatePlayerStatus(
+                this.player.hp, 
+                this.player.maxHp, 
+                this.player.exp, 
+                this.player.maxExp, 
+                this.player.level
+            );
+        }
     }
 
     // [추가] 몬스터 스폰 함수
@@ -280,6 +319,13 @@ export default class MainScene extends Phaser.Scene{
 
     // 코드가 너무 길어지니 애니메이션 생성 부분은 함수로 뺐습니다.
     createAnimations() {
+        //프로필
+        this.anims.create({
+            key:'profile',
+            frames: this.anims.generateFrameNumbers('profile', {start:0, end: 5}),
+            frameRate: 8,
+            repeat:-1
+        })
         this.anims.create({
             key:'mouse',
             frames: this.anims.generateFrameNumbers('mouse', {start: 0, end: 5}),

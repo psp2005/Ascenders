@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import PreloadScene from '../scenes/PreloadScene';
 import SelectScene from '../scenes/selectScene';
 import MainScene from '../scenes/MainScene'; 
+import HudScene from '../scenes/HudScene';
 
 //useRef - React에서 특정 HTML요소(DOM)를 직접 손으로 가리키는 집게
 //실제 DOM의 주소를 useRef로 만든 변수에 넘기면서 React가 관리하는 가상 DOM에서 제외한다
@@ -41,11 +42,8 @@ export default function GameCanvas() {
             height: window.innerHeight,
             // parent: Phaser가 그림을 그릴 '부모 도화지'입니다. 위에서 만든 containerRef(div)를 지정합니다.
             parent: containerRef.current,//
-            // render: 그래픽 처리 방식 설정입니다.
-            render: {
-                pixelArt: false,  // 도트(Pixel) 그래픽이 흐릿하지 않고 선명하게 보이도록 설정합니다.
-                antialias: false // 부드럽게 깎는 기능을 꺼서 도트의 각진 느낌을 살립니다.
-            },
+            pixelArt: true,
+            roundPixels: true,
             scale: {
                 // RESIZE: 브라우저 크기가 바뀔 때마다 게임 화면 크기도 실시간으로 맞춤
                 mode: Phaser.Scale.RESIZE,
@@ -64,7 +62,7 @@ export default function GameCanvas() {
                 }
             },
             // scene: 사용할 게임 장면(Scene)들의 리스트입니다. 우리가 만든 mainScene을 등록합니다.
-            scene: [ SelectScene, MainScene]
+            scene: [ SelectScene, MainScene, HudScene]
         };
 
         // 설정값(config)을 바탕으로 실제 Phaser 게임 객체를 생성하여 gameRef에 보관합니다.
