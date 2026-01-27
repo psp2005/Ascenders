@@ -236,7 +236,7 @@ export default class MainScene extends Phaser.Scene{
         })
 
         this.physics.add.collider(this.monsters, this.monsters);
-        this.physics.add.collider(this.player, this.monsters);
+        this.physics.add.collider(this.player, this.monsters,this.handlePlayerMonsterCollision, null, this);
         this.physics.add.collider(this.player, dungeonLayer);//캐릭터와 충돌 레이어 연결 (이제 캐릭터가 장애물을 못 지나감)
         this.physics.add.collider(this.player, objectsLayer);
         this.physics.add.collider(this.monsters, dungeonLayer);
@@ -248,6 +248,33 @@ export default class MainScene extends Phaser.Scene{
         this.physics.add.collider(this.multiProjectiles, objectsLayer, this.handleProjectileWallCollision, null, this);
       
     }
+    //  플레이어와 몬스터가 부딪혔을 때 실행되는 함수
+    handlePlayerMonsterCollision(player, monster) {
+    // [추가] 안전장치: 플레이어나 몬스터가 이미 파괴되었거나 유효하지 않으면 중단
+    if (!player || !player.active || !monster || !monster.active)
+        return;
+
+    // 1. 몬스터가 이미 죽은 상태면 무시
+    if (monster.isDead || player.isDead)
+        return; // 플레이어 사망 여부도 체크
+
+    // 2. 플레이어가 무적 상태가 아닐 때만 데미지 처리
+    if (player.isHitted === false) {
+        player.takeDamage(monster.damage || 10); 
+        
+        // 3. 넉백 효과
+        const angle = Phaser.Math.Angle.Between(monster.x, monster.y, player.x, player.y);
+        const knockbackForce = 20;
+
+        // [체크] setVelocity 호출 전 다시 한 번 객체 확인 (선택 사항)
+        if (player.body) {
+            player.setVelocity(
+                Math.cos(angle) * knockbackForce,
+                Math.sin(angle) * knockbackForce
+            );
+        }
+    }
+}
 
     // [추가됨] 투사체가 벽에 부딪혔을 때 실행되는 함수
     handleProjectileWallCollision(projectile, tile) {
@@ -266,15 +293,21 @@ export default class MainScene extends Phaser.Scene{
 
         this.player.update(angle);
 
-        //몬스터가 플레이어 쳐다보고 따라가도록
-        this.monsters.getChildren().forEach(monster => {
-            //getChildren은 그룹(monsters)이 가진 모든 구성원(배열)을 내놓으라는 Phaser명령어
-            if (monster.trace) {
-                monster.trace(this.player);//trace는 alien 속 메서드
-            } else if (monster.lookAt) {
-                monster.lookAt(this.player.x);//lookAt는 alien 속 메서드
-            }
-        });
+        // 플레이어가 살아있을 때만 몬스터가 쫓아오게 함
+        if (this.player && !this.player.isDead) {
+            this.monsters.getChildren().forEach(monster => {
+                if (monster.trace) {
+                    monster.trace(this.player);
+                } else if (monster.lookAt) {
+                    monster.lookAt(this.player.x);
+                }
+            });
+        } else {
+            // 플레이어가 죽었으면 몬스터들도 멈추게 하기 (선택사항)
+            this.monsters.getChildren().forEach(monster => {
+                if (monster.body) monster.setVelocity(0);
+            });
+        }
 
         // HUD에 플레이어 정보 전달
         const hud = this.scene.get('HudScene');

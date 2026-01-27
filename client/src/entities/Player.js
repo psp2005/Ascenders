@@ -110,21 +110,53 @@ export default class Player extends Actor {
 
     //오버라이딩으로 사망 함수
     die(){
-        super.die();
-        //경험치 0으로
+        // 이미 죽었으면 중복 실행 방지
+        if (this.isDead) 
+            return;
+
+        // 1. 경험치 및 HUD 처리
         this.exp = 0;
-        // HudScene에 사망 사실을 알림 (부활 버튼 표시용)
-        const hud = this.scene.scene.get('HudScene');
+        const hud = this.scene?.scene?.get('HudScene');
         if (hud) hud.showRespawnButton();
+
+        // 2. [중요] 부모의 super.die()를 호출하지 않고 직접 처리합니다.
+        // (부모 클래스 Actor가 플레이어를 destroy() 해버리는 것을 막기 위함)
+        this.isDead = true;
+        this.setVelocity(0,0);
+        this.setTint(0xff0000); // 빨간색으로 변함
+        
+        // 3. 파괴(destroy) 대신 화면에서 숨기고 물리 엔진 끄기
+        this.body.enable = false; // 충돌 감지 끄기
+        this.setVisible(false);   // 눈에 안 보이게 하기
+        this.setActive(false);    // 업데이트 멈추기 (update 함수 실행 안 됨)
     }
 
     // 부활 함수
-    respawn() {//HudScene.js에서 호출할 거임
+    respawn() {
+        // 1. 기본 생명력 및 사망 상태 복구
         this.isDead = false;
         this.hp = this.maxHp;
+
+        // [핵심 해결] 조작을 막고 있던 상태 변수들 강제 초기화
+        this.isHitted = false;    // 이게 true여서 움직이지 못했던 것!
+        this.isAttacking = false; // 공격 중에 죽었을 경우 대비
+        this.isDashing = false;   // 대시 중에 죽었을 경우 대비
+        this.coolTime1 = false;   // 쿨타임 초기화 (선택)
+        this.coolTime2 = false;
+
+        // 2. 그래픽 복구
         this.clearTint();
         this.setAlpha(1);
-        this.play('player_front'); // 기본 자세
+        
+        // 3. 물리/화면 복구
+        this.setActive(true);
+        this.setVisible(true);
+        this.body.enable = true;  // 물리 충돌 켜기
+
+        // 4. 애니메이션/위치 초기화
+        this.setTexture('player_front'); 
+        this.play('player_front'); 
+        this.setVelocity(0, 0); // 미끄러짐 방지
     }
 
     handleMovement() {
@@ -334,5 +366,18 @@ export default class Player extends Actor {
         this.scene.time.delayedCall(100, () => {
             this.isAttacking = false; 
         });
+    }
+
+    getSaveData(){
+        return{
+            x: this.x,
+            y: this.y,
+            hp: this.hp,
+            maxHp: this.maxHp,
+            exp: this.exp,
+            level: this.level,
+            job: this.scene.seletedJob || 'demon',
+            //나중에 인벤토리 아이템, 스킬..등도 여기에 추가하면 된다.
+        }
     }
 }

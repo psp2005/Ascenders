@@ -27,8 +27,125 @@ export default class HudScene extends Phaser.Scene{
             .setDepth(9999) // 혹시 모르니 depth를 높게 설정
             .setScale(1)
             .play('mouse');
+        this.createEscMenu();
+        this.input.keyboard.on('keydown-ESC', ()=>{
+            this.toggleMenu();
+        })
+    }
+    createEscMenu() {
+        // 화면 중앙에 배치하기 위해 컨테이너 생성
+        this.menuContainer = this.add.container(0, 0).setVisible(false).setDepth(9000);
+
+        // 1. 반투명 검은 배경 (화면 전체를 덮도록 크게)
+        const bg = this.add.graphics();
+        bg.fillStyle(0x000000, 0.7); // 검은색, 투명도 0.7
+        bg.fillRect(-2000, -2000, 4000, 4000); // 넉넉하게 큰 사이즈
+        // 배경을 클릭해도 게임 화면이 눌리지 않게 차단 (인터랙티브 설정)
+        bg.setInteractive(new Phaser.Geom.Rectangle(-2000, -2000, 4000, 4000), Phaser.Geom.Rectangle.Contains);
+
+        // 2. 메뉴 박스 디자인
+        const menuBox = this.add.graphics();
+        menuBox.fillStyle(0x222222, 1);
+        menuBox.lineStyle(4, 0xffffff, 1);
+        menuBox.fillRoundedRect(-150, -100, 300, 200, 10); // x, y, w, h, radius
+        menuBox.strokeRoundedRect(-150, -100, 300, 200, 10);
+
+        // 3. 텍스트 제목
+        const titleText = this.add.text(0, -60, 'PAUSE', {
+            fontSize: '32px', fontStyle: 'bold', fill: '#ffffff'
+        }).setOrigin(0.5);
+
+        // 4. 저장하기 버튼
+        const saveBtn = this.createMenuButton(0, 10, '저장하기', () => {
+            this.handleSave();
+        });
+
+        // 5. 홈으로 버튼
+        const homeBtn = this.createMenuButton(0, 70, '홈으로', () => {
+            this.handleGoHome();
+        });
+
+        // 컨테이너에 담기
+        this.menuContainer.add([bg, menuBox, titleText, saveBtn, homeBtn]);
     }
 
+    createMenuButton(x, y, text, onClick) {
+        const btnContainer = this.add.container(x, y);
+        
+        const btnBg = this.add.graphics();
+        btnBg.fillStyle(0x444444, 1);
+        btnBg.fillRoundedRect(-80, -20, 160, 40, 5);
+
+        const btnText = this.add.text(0, 0, text, {
+            fontSize: '20px', fill: '#ffffff'
+        }).setOrigin(0.5);
+
+        btnBg.setInteractive(new Phaser.Geom.Rectangle(-80, -20, 160, 40), Phaser.Geom.Rectangle.Contains)
+             .on('pointerdown', () => {
+                 btnBg.fillStyle(0x666666, 1); // 클릭 시 색 변경
+                 btnBg.fillRoundedRect(-80, -20, 160, 40, 5);
+             })
+             .on('pointerup', () => {
+                 btnBg.fillStyle(0x444444, 1); // 원복
+                 btnBg.fillRoundedRect(-80, -20, 160, 40, 5);
+                 onClick(); // 기능 실행
+             })
+             .on('pointerover', () => { // 마우스 올렸을 때 커서 변경 (선택사항)
+                 this.input.setDefaultCursor('pointer'); 
+             })
+             .on('pointerout', () => {
+                 this.input.setDefaultCursor('none'); 
+             });
+
+        btnContainer.add([btnBg, btnText]);
+        return btnContainer;
+    }
+    toggleMenu() {
+        this.isMenuOpen = !this.isMenuOpen;
+        this.menuContainer.setVisible(this.isMenuOpen);
+
+        const mainScene = this.scene.get('MainScene');
+
+        if (this.isMenuOpen) {
+            // 메뉴 열림: 게임 화면 중앙으로 메뉴 이동
+            const { width, height } = this.scale;
+            this.menuContainer.setPosition(width / 2, height / 2);
+
+            // [중요] 게임 일시정지 (MainScene 물리 엔진 멈춤)
+            if (mainScene) {
+                mainScene.physics.pause(); 
+                // 플레이어가 움직이고 있었다면 멈추게 함
+                if (mainScene.player) mainScene.player.setVelocity(0); 
+            }
+        } else {
+            // 메뉴 닫힘: 게임 재개
+            if (mainScene) {
+                mainScene.physics.resume();
+            }
+        }
+    }
+
+    handleSave() {
+        const mainScene = this.scene.get('MainScene');
+        if (mainScene && mainScene.player) {
+            // Player.js에서 만든 getSaveData() 호출
+            const playerData = mainScene.player.getSaveData();
+
+            console.log("=== [서버로 전송할 데이터] ===");
+            console.log(JSON.stringify(playerData, null, 2));
+            console.log("============================");
+
+            // 나중에 여기에 axios.post('/api/save', playerData) 같은 코드가 들어갑니다.
+            alert("게임이 저장되었습니다! (콘솔 확인)");
+        }
+    }
+    handleGoHome() {
+        // 나중에는 this.scene.start('LoginScene') 등으로 이동
+        const check = confirm("저장하지 않은 데이터는 사라집니다. 홈으로 가시겠습니까?");
+        if (check) {
+            window.location.reload(); // 지금은 새로고침(홈으로 가는 효과)
+        }
+    }
     createHudElements() {
         // 위치 계산을 위해 임시 변수 사용 (컨테이너 기준이므로 0을 중심으로 설계)
         const radius = 90;

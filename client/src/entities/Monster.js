@@ -12,7 +12,8 @@ export default class Monster extends Actor {
         this.aggroRange = 200;
         //몬스터 경험치
         this.expReward = 10;
-
+        //몬스터 공격력
+        this.damage = 10;
         //MainScene에서 this.physics.add.collider(this.monsters, this.monsters);을 통해 
         //몹끼리 겹치지 않게했지만 몸체가 기본 박스형태라서 겹칠 때도 있다 이를 방지하기 위해
         
@@ -99,18 +100,18 @@ export default class Monster extends Actor {
         const distToSpawn = Phaser.Math.Distance.Between(this.x, this.y, this.spawnX, this.spawnY)
         //플레이어가 몹의 감지 범위에 들어오면 추격하고, 충분히 가까워지면 정지
         if(distance <= this.aggroRange){
-            //  이동 로직
-            if (distance < 15) {
-                // 너무 가까우면 멈춤 (공격 사거리)
-                this.setVelocity(0);
-                // 나중에 여기에 '공격 애니메이션' 실행 코드를 넣으면 됨
-            } else {//어그로 범위에 캐릭터가 들어올때만 바라보는 방향 잡고 쫗아감
-                // 거리가 멀면 쫓아감 (속도 20)
-                // moveToObject(이동할놈, 목표물, 속도)
-                this.scene.physics.moveToObject(this, player, 20);
-                //바라보는 방향
-                this.setFlipX(player.x < this.x);
-            }
+            // //  이동 로직
+            // if (distance < 15) {
+            //     // 너무 가까우면 멈춤 (공격 사거리)
+            //     this.setVelocity(0);
+            //     // 나중에 여기에 '공격 애니메이션' 실행 코드를 넣으면 됨
+            // } else {//어그로 범위에 캐릭터가 들어올때만 바라보는 방향 잡고 쫗아감
+            //     // 거리가 멀면 쫓아감 (속도 20)
+            // }
+            // moveToObject(이동할놈, 목표물, 속도)
+            this.scene.physics.moveToObject(this, player, 20);
+            //바라보는 방향
+            this.setFlipX(player.x < this.x);
         }
         else{
             if(distToSpawn > 5){
